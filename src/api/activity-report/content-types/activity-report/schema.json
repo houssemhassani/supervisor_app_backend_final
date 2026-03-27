@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "activity_reports",
+  "info": {
+    "singularName": "activity-report",
+    "pluralName": "activity-reports",
+    "displayName": "ActivityReport"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "activity_reports"
+    },
+    "report_date": {
+      "type": "date"
+    },
+    "total_work_time": {
+      "type": "integer"
+    },
+    "total_keyboards_clicks": {
+      "type": "integer"
+    },
+    "total_mouse_clicks": {
+      "type": "integer"
+    },
+    "screenshots_count": {
+      "type": "integer"
+    },
+    "productivity_score": {
+      "type": "decimal"
+    }
+  }
+}

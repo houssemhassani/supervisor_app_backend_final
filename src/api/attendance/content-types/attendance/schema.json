@@ -1,0 +1,61 @@
+{
+  "kind": "collectionType",
+  "collectionName": "attendances",
+  "info": {
+    "singularName": "attendance",
+    "pluralName": "attendances",
+    "displayName": "Attendance"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "attendances"
+    },
+    "date": {
+      "type": "datetime"
+    },
+    "check_in": {
+      "type": "datetime"
+    },
+    "check_out": {
+      "type": "datetime"
+    },
+    "statuts": {
+      "type": "enumeration",
+      "default": "PRESENT",
+      "enum": [
+        "PRESENT",
+        "ABSENT",
+        "LATE",
+        "HALF_DAY",
+        "HOLIDAY"
+      ]
+    },
+    "check_in_late_minutes": {
+      "type": "integer",
+      "default": 0
+    },
+    "early_checkout_minutes": {
+      "type": "integer",
+      "default": 0
+    },
+    "work_hours": {
+      "type": "decimal"
+    },
+    "location": {
+      "type": "json"
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "screenshots",
+  "info": {
+    "singularName": "screenshot",
+    "pluralName": "screenshots",
+    "displayName": "Screenshot"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "project": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::project.project",
+      "inversedBy": "screenshots"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "screenshots"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "captured_at": {
+      "type": "datetime"
+    }
+  }
+}

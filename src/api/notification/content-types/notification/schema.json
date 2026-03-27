@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "notifications",
+  "info": {
+    "singularName": "notification",
+    "pluralName": "notifications",
+    "displayName": "Notification"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "notifications"
+    },
+    "title": {
+      "type": "string"
+    },
+    "message": {
+      "type": "text"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "INFO",
+        "WARNING",
+        "ALERT",
+        "SYSTEM"
+      ]
+    },
+    "is_read": {
+      "type": "boolean"
+    }
+  }
+}

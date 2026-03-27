@@ -1,0 +1,42 @@
+{
+  "kind": "collectionType",
+  "collectionName": "holidays",
+  "info": {
+    "singularName": "holiday",
+    "pluralName": "holidays",
+    "displayName": "Holiday"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "date": {
+      "type": "date",
+      "required": true
+    },
+    "type": {
+      "type": "enumeration",
+      "default": "PUBLIC",
+      "enum": [
+        "PUBLIC",
+        "COMPANY",
+        "RELIGIOUS"
+      ]
+    },
+    "is_recurring": {
+      "type": "boolean",
+      "default": false
+    },
+    "applicable_to": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "holidays"
+    }
+  }
+}

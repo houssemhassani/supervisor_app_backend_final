@@ -1,0 +1,32 @@
+{
+  "kind": "collectionType",
+  "collectionName": "role_users",
+  "info": {
+    "singularName": "role-user",
+    "pluralName": "role-users",
+    "displayName": "Role_User"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "enumeration",
+      "enum": [
+        "ADMIN",
+        "MANAGER",
+        "EMPLOYEE"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "users": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "plugin::users-permissions.user",
+      "mappedBy": "role_user"
+    }
+  }
+}

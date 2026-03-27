@@ -1,0 +1,78 @@
+{
+  "kind": "collectionType",
+  "collectionName": "projects",
+  "info": {
+    "singularName": "project",
+    "pluralName": "projects",
+    "displayName": "Project"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "start_date": {
+      "type": "date"
+    },
+    "end_date": {
+      "type": "date"
+    },
+    "statuts": {
+      "type": "enumeration",
+      "enum": [
+        "PLANNED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "CANCELLED"
+      ]
+    },
+    "creator": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "my_projects"
+    },
+    "users": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "projects"
+    },
+    "tasks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::task.task",
+      "mappedBy": "project"
+    },
+    "time_logs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::time-log.time-log",
+      "mappedBy": "project"
+    },
+    "activity_logs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::activity-log.activity-log",
+      "mappedBy": "project"
+    },
+    "screenshots": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::screenshot.screenshot",
+      "mappedBy": "project"
+    },
+    "overtime_requests": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::overtime-request.overtime-request",
+      "mappedBy": "project"
+    }
+  }
+}

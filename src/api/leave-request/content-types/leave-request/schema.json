@@ -1,0 +1,75 @@
+{
+  "kind": "collectionType",
+  "collectionName": "leave_requests",
+  "info": {
+    "singularName": "leave-request",
+    "pluralName": "leave-requests",
+    "displayName": "LeaveRequest"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "leave_requests"
+    },
+    "approved_by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "approved_leave_requests"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "ANNUAL",
+        "SICK",
+        "PERSONAL",
+        "UNPAID",
+        "MATERNITY",
+        "OTHER"
+      ]
+    },
+    "start_date": {
+      "type": "date",
+      "required": true
+    },
+    "end_date": {
+      "type": "date",
+      "required": true
+    },
+    "duration_days": {
+      "type": "decimal"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "statuts": {
+      "type": "enumeration",
+      "enum": [
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "CANCELLED"
+      ]
+    },
+    "attachment": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "manager_comments": {
+      "type": "string"
+    },
+    "approval_date": {
+      "type": "datetime"
+    }
+  }
+}

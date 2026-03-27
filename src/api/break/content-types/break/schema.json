@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "breaks",
+  "info": {
+    "singularName": "break",
+    "pluralName": "breaks",
+    "displayName": "Break"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "breaks"
+    },
+    "time_log": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::time-log.time-log",
+      "inversedBy": "breaks"
+    },
+    "start_time": {
+      "type": "datetime"
+    },
+    "end_time": {
+      "type": "datetime"
+    },
+    "duration_minutes": {
+      "type": "integer"
+    },
+    "type": {
+      "type": "enumeration",
+      "default": "SHORT",
+      "enum": [
+        "LUNCH",
+        "COFFEE",
+        "SHORT",
+        "OTHER"
+      ]
+    },
+    "statuts": {
+      "type": "enumeration",
+      "default": "ACTIVE",
+      "enum": [
+        "ACTIVE",
+        "ENDED"
+      ]
+    }
+  }
+}

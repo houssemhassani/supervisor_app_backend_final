@@ -1,0 +1,196 @@
+{
+  "kind": "collectionType",
+  "collectionName": "up_users",
+  "info": {
+    "name": "user",
+    "description": "",
+    "singularName": "user",
+    "pluralName": "users",
+    "displayName": "User"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "unique": true,
+      "configurable": false,
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "minLength": 6,
+      "configurable": false,
+      "required": true
+    },
+    "provider": {
+      "type": "string",
+      "configurable": false
+    },
+    "password": {
+      "type": "password",
+      "minLength": 6,
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "resetPasswordToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "confirmationToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "confirmed": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "blocked": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "role": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.role",
+      "inversedBy": "users",
+      "configurable": false
+    },
+    "role_user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::role-user.role-user",
+      "inversedBy": "users"
+    },
+    "my_projects": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::project.project",
+      "mappedBy": "creator"
+    },
+    "projects": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::project.project",
+      "mappedBy": "users"
+    },
+    "tasks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::task.task",
+      "mappedBy": "assigned_to"
+    },
+    "time_logs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::time-log.time-log",
+      "mappedBy": "user"
+    },
+    "activity_logs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::activity-log.activity-log",
+      "mappedBy": "user"
+    },
+    "screenshots": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::screenshot.screenshot",
+      "mappedBy": "user"
+    },
+    "activity_reports": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::activity-report.activity-report",
+      "mappedBy": "user"
+    },
+    "notifications": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::notification.notification",
+      "mappedBy": "user"
+    },
+    "overtime_requests": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::overtime-request.overtime-request",
+      "mappedBy": "user"
+    },
+    "validations": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::overtime-request.overtime-request",
+      "mappedBy": "manager"
+    },
+    "department": {
+      "type": "string"
+    },
+    "position": {
+      "type": "string"
+    },
+    "avatar": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "statuts": {
+      "type": "enumeration",
+      "enum": [
+        "ACTIVE",
+        "INACTIVE",
+        "SUSPENDED"
+      ]
+    },
+    "attendances": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::attendance.attendance",
+      "mappedBy": "users_permissions_user"
+    },
+    "breaks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::break.break",
+      "mappedBy": "users_permissions_user"
+    },
+    "holidays": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::holiday.holiday",
+      "mappedBy": "applicable_to"
+    },
+    "leave_requests": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::leave-request.leave-request",
+      "mappedBy": "user"
+    },
+    "approved_leave_requests": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::leave-request.leave-request",
+      "mappedBy": "approved_by"
+    },
+    "approved_overtime_requests": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::overtime-request.overtime-request",
+      "mappedBy": "users_permissions_user"
+    }
+  }
+}

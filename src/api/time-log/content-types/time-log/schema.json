@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "time_logs",
+  "info": {
+    "singularName": "time-log",
+    "pluralName": "time-logs",
+    "displayName": "TimeLog"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "project": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::project.project",
+      "inversedBy": "time_logs"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "time_logs"
+    },
+    "start_time": {
+      "type": "datetime"
+    },
+    "end_time": {
+      "type": "datetime"
+    },
+    "statuts": {
+      "type": "enumeration",
+      "enum": [
+        "ACTIVE",
+        "PAUSED",
+        "FINISHED"
+      ]
+    },
+    "breaks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::break.break",
+      "mappedBy": "time_log"
+    },
+    "total_break_minutes": {
+      "type": "integer",
+      "default": 0
+    },
+    "net_work_minutes": {
+      "type": "integer"
+    }
+  }
+}
