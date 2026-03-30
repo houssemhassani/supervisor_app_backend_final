@@ -6,21 +6,38 @@ export default {
       path: '/tasks',
       handler: 'task.find',
       config: {
-        auth: {
+        auth: false/* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     },
+    {
+  method: 'GET',
+  path: '/tasks/public',
+  handler: 'task.publicFind',
+  config: {
+    auth: false
+  }
+},
+// src/api/task/routes/task.ts
+{
+  method: 'GET',
+  path: '/tasks/user',
+  handler: 'task.getUserTasks',
+  config: {
+    auth: false
+  }
+},
     {
       method: 'POST',
       path: '/tasks',
       handler: 'task.create',
       config: {
-        auth: {
+        auth: false/* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     },
     {
@@ -28,10 +45,10 @@ export default {
       path: '/tasks/:id',
       handler: 'task.update',
       config: {
-        auth: {
+        auth: false/* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     },
     {
@@ -39,10 +56,10 @@ export default {
       path: '/tasks/:id',
       handler: 'task.delete',
       config: {
-        auth: {
+        auth: false/* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     },
     {
@@ -50,10 +67,10 @@ export default {
       path: '/tasks/my-tasks',
       handler: 'task.getMyTasks',
       config: {
-        auth: {
+        auth:false /* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     },
     {
@@ -61,10 +78,10 @@ export default {
       path: '/tasks/project/:projectId',
       handler: 'task.getProjectTasks',
       config: {
-        auth: {
+        auth: false/* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     },
     {
@@ -72,10 +89,10 @@ export default {
       path: '/tasks/my-stats',
       handler: 'task.getMyStats',
       config: {
-        auth: {
+        auth: false/* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     },
     {
@@ -83,10 +100,10 @@ export default {
       path: '/tasks/:id/status',
       handler: 'task.changeStatus',
       config: {
-        auth: {
+        auth: false/* {
           enabled: true,
           strategies: ['jwt']
-        }
+        } */
       }
     }
   ]
