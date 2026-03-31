@@ -1,7 +1,4 @@
-/**
- * leave-request controller
- */
-
+// src/api/leave-request/controllers/leave-request.ts
 import { factories } from '@strapi/strapi';
 
 export default factories.createCoreController('api::leave-request.leave-request', ({ strapi }) => ({
@@ -9,32 +6,48 @@ export default factories.createCoreController('api::leave-request.leave-request'
    * Récupérer les demandes de congé selon le rôle
    */
   async find(ctx) {
-    const { user } = ctx.state;
+    // Récupérer l'utilisateur depuis le token manuellement
+    let user = ctx.state.user;
     
     if (!user) {
-      return ctx.unauthorized('Vous devez être connecté');
+      const authHeader = ctx.request.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'my-secret-key');
+          user = await strapi.db.query('plugin::users-permissions.user').findOne({
+            where: { id: decoded.id }
+          });
+        } catch (error) {
+          console.log('Token invalide ou expiré');
+        }
+      }
     }
     
+    // Si toujours pas d'utilisateur, retourner une liste vide
+    if (!user) {
+      console.log('📋 [LeaveRequest find] Aucun utilisateur trouvé');
+      return ctx.send({ data: [] });
+    }
+    
+    console.log('📋 [LeaveRequest find] Utilisateur:', user.id);
     const userRole = user.role?.name?.toLowerCase();
     
     // Si c'est un employee, filtrer ses propres demandes
     if (userRole === 'employee') {
-      // Initialiser les filtres de manière simple
       const existingFilters = ctx.query?.filters || {};
       
-      // Créer un nouvel objet filters
       const newFilters: any = {
         user: { id: user.id }
       };
       
-      // Copier les filtres existants
       if (existingFilters && typeof existingFilters === 'object') {
         Object.keys(existingFilters).forEach(key => {
           newFilters[key] = (existingFilters as any)[key];
         });
       }
       
-      // Appliquer les filtres
       if (!ctx.query) {
         ctx.query = {};
       }
@@ -48,51 +61,46 @@ export default factories.createCoreController('api::leave-request.leave-request'
   /**
    * Créer une demande de congé
    */
-  async create(ctx) {
-    const { user } = ctx.state;
-    
-    if (!user) {
-      return ctx.unauthorized('Vous devez être connecté');
-    }
-    
-    const userRole = user.role?.name?.toLowerCase();
-    const requestData = ctx.request.body?.data || {};
-    
-    // Construire les données
-    const createData: any = {};
-    
-    // Copier les données existantes
-    if (requestData && typeof requestData === 'object') {
-      Object.keys(requestData).forEach(key => {
-        createData[key] = requestData[key];
-      });
-    }
-    
-    // Si c'est un employee, forcer l'utilisateur à lui-même
-    if (userRole === 'employee') {
-      createData.user = user.id;
-      createData.statuts = 'PENDING';
-    }
-    
-    // Calculer la durée en jours
-    if (requestData.start_date && requestData.end_date) {
-      const start = new Date(requestData.start_date);
-      const end = new Date(requestData.end_date);
-      const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      createData.duration_days = durationDays;
-    }
-    
-    ctx.request.body = { data: createData };
-    
-    const response = await super.create(ctx);
-    return response;
-  },
+async create(ctx) {
+  const user = ctx.state.user;
+  if (!user) return ctx.unauthorized("Utilisateur non connecté");
+
+  const requestData = ctx.request.body.data;
+
+  const newData = {
+    ...requestData,
+    user: user.id,
+    created_by: user.id,  // Remplit created_by_id automatiquement
+    statuts: 'PENDING'
+  };
+
+  ctx.request.body = { data: newData };
+  return await super.create(ctx);
+},
   
   /**
    * Mettre à jour une demande de congé
    */
   async update(ctx) {
-    const { user } = ctx.state;
+    // Récupérer l'utilisateur manuellement
+    let user = ctx.state.user;
+    
+    if (!user) {
+      const authHeader = ctx.request.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'my-secret-key');
+          user = await strapi.db.query('plugin::users-permissions.user').findOne({
+            where: { id: decoded.id }
+          });
+        } catch (error) {
+          console.log('Token invalide ou expiré');
+        }
+      }
+    }
+    
     const { id } = ctx.params;
     
     if (!user) {
@@ -129,7 +137,25 @@ export default factories.createCoreController('api::leave-request.leave-request'
    * Supprimer une demande de congé
    */
   async delete(ctx) {
-    const { user } = ctx.state;
+    // Récupérer l'utilisateur manuellement
+    let user = ctx.state.user;
+    
+    if (!user) {
+      const authHeader = ctx.request.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'my-secret-key');
+          user = await strapi.db.query('plugin::users-permissions.user').findOne({
+            where: { id: decoded.id }
+          });
+        } catch (error) {
+          console.log('Token invalide ou expiré');
+        }
+      }
+    }
+    
     const { id } = ctx.params;
     
     if (!user) {
@@ -166,7 +192,24 @@ export default factories.createCoreController('api::leave-request.leave-request'
    * Approuver une demande de congé (Manager/Admin uniquement)
    */
   async approve(ctx) {
-    const { user } = ctx.state;
+    let user = ctx.state.user;
+    
+    if (!user) {
+      const authHeader = ctx.request.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'my-secret-key');
+          user = await strapi.db.query('plugin::users-permissions.user').findOne({
+            where: { id: decoded.id }
+          });
+        } catch (error) {
+          console.log('Token invalide ou expiré');
+        }
+      }
+    }
+    
     const { id } = ctx.params;
     const { comments } = ctx.request.body;
     
@@ -176,7 +219,6 @@ export default factories.createCoreController('api::leave-request.leave-request'
     
     const userRole = user.role?.name?.toLowerCase();
     
-    // Seul manager ou admin peut approuver
     if (userRole !== 'manager' && userRole !== 'admin') {
       return ctx.forbidden('Vous n\'avez pas les droits pour approuver une demande');
     }
@@ -204,7 +246,24 @@ export default factories.createCoreController('api::leave-request.leave-request'
    * Rejeter une demande de congé (Manager/Admin uniquement)
    */
   async reject(ctx) {
-    const { user } = ctx.state;
+    let user = ctx.state.user;
+    
+    if (!user) {
+      const authHeader = ctx.request.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'my-secret-key');
+          user = await strapi.db.query('plugin::users-permissions.user').findOne({
+            where: { id: decoded.id }
+          });
+        } catch (error) {
+          console.log('Token invalide ou expiré');
+        }
+      }
+    }
+    
     const { id } = ctx.params;
     const { comments } = ctx.request.body;
     
@@ -214,7 +273,6 @@ export default factories.createCoreController('api::leave-request.leave-request'
     
     const userRole = user.role?.name?.toLowerCase();
     
-    // Seul manager ou admin peut rejeter
     if (userRole !== 'manager' && userRole !== 'admin') {
       return ctx.forbidden('Vous n\'avez pas les droits pour rejeter une demande');
     }
