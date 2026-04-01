@@ -2,8 +2,6 @@
  * leave-request router
  */
 
-import { factories } from '@strapi/strapi';
-
 export default {
   routes: [
     {
@@ -11,7 +9,23 @@ export default {
       path: '/leave-requests',
       handler: 'leave-request.find',
       config: {
-        auth:false
+        auth: {
+          enabled: false  // Désactivé pour le test
+        },
+        policies: [],
+        middlewares: []
+      }
+    },
+    {
+      method: 'GET',
+      path: '/leave-requests/test',
+      handler: 'leave-request.test',
+      config: {
+        auth: {
+          enabled: false  // Désactivé pour le test
+        },
+        policies: [],
+        middlewares: []
       }
     },
     {
@@ -19,7 +33,11 @@ export default {
       path: '/leave-requests',
       handler: 'leave-request.create',
       config: {
-        auth: false
+        auth: {
+          enabled: true  // ← Activé pour la création (nécessite token)
+        },
+        policies: [],
+        middlewares: []
       }
     },
     {
@@ -27,7 +45,11 @@ export default {
       path: '/leave-requests/:id',
       handler: 'leave-request.update',
       config: {
-        auth: false
+        auth: {
+          enabled: true  // Activé
+        },
+        policies: [],
+        middlewares: []
       }
     },
     {
@@ -35,7 +57,9 @@ export default {
       path: '/leave-requests/:id',
       handler: 'leave-request.delete',
       config: {
-        auth:false
+        auth: {
+          enabled: false  // Activé
+        }
       }
     },
     {
@@ -43,7 +67,11 @@ export default {
       path: '/leave-requests/:id/approve',
       handler: 'leave-request.approve',
       config: {
-        auth:false
+        auth: {
+          enabled: false  // Activé (seuls managers/admins)
+        },
+        policies: [],
+        middlewares: []
       }
     },
     {
@@ -51,7 +79,11 @@ export default {
       path: '/leave-requests/:id/reject',
       handler: 'leave-request.reject',
       config: {
-        auth:false
+        auth: {
+          enabled: false  // Activé (seuls managers/admins)
+        },
+        policies: [],
+        middlewares: []
       }
     }
   ]
