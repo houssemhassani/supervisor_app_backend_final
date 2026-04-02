@@ -58,8 +58,10 @@ export default {
       handler: 'leave-request.delete',
       config: {
         auth: {
-          enabled: false  // Activé
-        }
+          enabled: true  // Activé
+        },
+        policies: [],
+        middlewares: []
       }
     },
     {

@@ -216,118 +216,148 @@ async create(ctx) {
    * Mettre à jour une demande de congé
    * PUT /api/leave-requests/:id
    */
-  async update(ctx) {
-    try {
-      const user = ctx.state.user;
-      const { id } = ctx.params;
-      
-      if (!user) {
-        return ctx.unauthorized('Vous devez être connecté');
-      }
-      
-      console.log(`✏️ [LeaveRequest update] ID: ${id}, Utilisateur: ${user.id}`);
-      
-      const userRole = user.role?.name?.toLowerCase();
-      
-      // Récupérer la demande existante
-      const existingLeaveRequest = await strapi.db.query('api::leave-request.leave-request').findOne({
-        where: { id },
-        populate: { user: true }
-      });
-      
-      if (!existingLeaveRequest) {
-        return ctx.notFound('Demande de congé non trouvée');
-      }
-      
-      // Vérifier les permissions
-      if (userRole === 'employee') {
-        // Un employee ne peut modifier que ses propres demandes
-        if (existingLeaveRequest.user.id !== user.id) {
-          return ctx.forbidden('Vous ne pouvez pas modifier cette demande');
-        }
-        
-        // Un employee ne peut modifier que les demandes en attente
-        if (existingLeaveRequest.statuts !== 'PENDING') {
-          return ctx.badRequest('Seules les demandes en attente peuvent être modifiées');
-        }
-      }
-      
-      // Récupérer les données de mise à jour
-      const requestData = ctx.request.body.data;
-      
-      if (requestData) {
-        // Si on essaie de changer le statut, vérifier les droits
-        if (requestData.statuts && requestData.statuts !== existingLeaveRequest.statuts) {
-          // Seuls les managers/admins peuvent changer le statut
-          if (userRole === 'employee') {
-            return ctx.forbidden('Vous ne pouvez pas modifier le statut d\'une demande');
-          }
-        }
-      }
-      
-      console.log(`✅ [LeaveRequest update] Mise à jour autorisée pour l'utilisateur ${user.id}`);
-      
-      // Appeler le contrôleur parent
-      const response = await super.update(ctx);
-      return response;
-      
-    } catch (error) {
-      console.error('❌ [LeaveRequest update] Erreur:', error);
-      return ctx.internalServerError('Erreur lors de la mise à jour de la demande');
+  /**
+ * Mettre à jour une demande de congé
+ * PUT /api/leave-requests/:id
+ */
+async update(ctx) {
+  try {
+    const user = ctx.state.user;
+    const { id } = ctx.params;
+    
+    console.log(`✏️ [LeaveRequest update] ID: ${id}`);
+    console.log('📦 Données reçues:', ctx.request.body);
+    
+    if (!user) {
+      return ctx.unauthorized('Vous devez être connecté');
     }
-  },
+    
+    // Récupérer la demande existante
+    const existingLeaveRequest = await strapi.db.query('api::leave-request.leave-request').findOne({
+      where: { id: parseInt(id) },
+      populate: { user: true }
+    });
+    
+    if (!existingLeaveRequest) {
+      return ctx.notFound('Demande de congé non trouvée');
+    }
+    
+    const userRole = user.role?.name?.toLowerCase();
+    
+    // Vérifier les permissions
+    if (userRole === 'employee') {
+      // Un employee ne peut modifier que ses propres demandes
+      if (existingLeaveRequest.user.id !== user.id) {
+        return ctx.forbidden('Vous ne pouvez pas modifier cette demande');
+      }
+      
+      // Un employee ne peut modifier que les demandes en attente
+      if (existingLeaveRequest.statuts !== 'PENDING') {
+        return ctx.badRequest('Seules les demandes en attente peuvent être modifiées');
+      }
+    }
+    
+    // Récupérer les données de mise à jour
+    const requestData = ctx.request.body.data;
+    
+    if (!requestData) {
+      return ctx.badRequest('Données de modification manquantes');
+    }
+    
+    // Préparer les données de mise à jour
+    const updateData: any = {};
+    
+    if (requestData.type) updateData.type = requestData.type;
+    if (requestData.start_date) updateData.start_date = requestData.start_date;
+    if (requestData.end_date) updateData.end_date = requestData.end_date;
+    if (requestData.reason) updateData.reason = requestData.reason;
+    
+    // Si les dates changent, recalculer la durée
+    if (requestData.start_date && requestData.end_date) {
+      const startDate = new Date(requestData.start_date);
+      const endDate = new Date(requestData.end_date);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      updateData.duration_days = diffDays;
+    }
+    
+    updateData.updated_by = user.id;
+    
+    console.log('📝 Mise à jour avec:', updateData);
+    
+    // Mettre à jour la demande
+    const result = await strapi.db.query('api::leave-request.leave-request').update({
+      where: { id: parseInt(id) },
+      data: updateData
+    });
+    
+    console.log(`✅ Demande ${id} mise à jour avec succès`);
+    
+    return ctx.send({
+      success: true,
+      message: 'Demande modifiée avec succès',
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('❌ [LeaveRequest update] Erreur:', error);
+    return ctx.internalServerError(`Erreur lors de la mise à jour: ${error.message}`);
+  }
+},
   
   /**
    * Supprimer une demande de congé
    * DELETE /api/leave-requests/:id
    */
   async delete(ctx) {
-    try {
-      const user = ctx.state.user;
-      const { id } = ctx.params;
-      
-      if (!user) {
-        return ctx.unauthorized('Vous devez être connecté');
-      }
-      
-      console.log(`🗑️ [LeaveRequest delete] ID: ${id}, Utilisateur: ${user.id}`);
-      
-      const userRole = user.role?.name?.toLowerCase();
-      
-      // Récupérer la demande existante
-      const existingLeaveRequest = await strapi.db.query('api::leave-request.leave-request').findOne({
-        where: { id },
-        populate: { user: true }
-      });
-      
-      if (!existingLeaveRequest) {
-        return ctx.notFound('Demande de congé non trouvée');
-      }
-      
-      // Vérifier les permissions
-      if (userRole === 'employee') {
-        // Un employee ne peut supprimer que ses propres demandes
-        if (existingLeaveRequest.user.id !== user.id) {
-          return ctx.forbidden('Vous ne pouvez pas supprimer cette demande');
-        }
-        
-        // Un employee ne peut supprimer que les demandes en attente
-        if (existingLeaveRequest.statuts !== 'PENDING') {
-          return ctx.badRequest('Seules les demandes en attente peuvent être supprimées');
-        }
-      }
-      
-      console.log(`✅ [LeaveRequest delete] Suppression autorisée pour l'utilisateur ${user.id}`);
-      
-      // Appeler le contrôleur parent
-      const response = await super.delete(ctx);
-      return response;
-      
-    } catch (error) {
-      console.error('❌ [LeaveRequest delete] Erreur:', error);
-      return ctx.internalServerError('Erreur lors de la suppression de la demande');
+  try {
+    const user = ctx.state.user;
+    const { id } = ctx.params;
+    
+    if (!user) {
+      return ctx.unauthorized('Vous devez être connecté');
     }
-  },
+    
+    // Récupérer la demande avant suppression
+    const existingLeaveRequest = await strapi.db.query('api::leave-request.leave-request').findOne({
+      where: { id: parseInt(id) },
+      populate: { user: true }
+    });
+    
+    if (!existingLeaveRequest) {
+      return ctx.notFound('Demande non trouvée');
+    }
+    
+    // Vérifier les permissions
+    const userRole = user.role?.name?.toLowerCase();
+    if (userRole === 'employee') {
+      if (existingLeaveRequest.user.id !== user.id) {
+        return ctx.forbidden('Vous ne pouvez pas supprimer cette demande');
+      }
+      if (existingLeaveRequest.statuts !== 'PENDING') {
+        return ctx.badRequest('Seules les demandes en attente peuvent être supprimées');
+      }
+    }
+    
+    // Supprimer
+    await strapi.db.query('api::leave-request.leave-request').delete({
+      where: { id: parseInt(id) }
+    });
+    
+    console.log(`✅ Demande ${id} supprimée`);
+    
+    // Retourner l'objet supprimé
+    return ctx.send({
+      success: true,
+      message: 'Demande supprimée avec succès',
+      data: existingLeaveRequest  // ← Retourner les données supprimées
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur suppression:', error);
+    return ctx.internalServerError(error.message);
+  }
+},
   
   /**
    * Approuver une demande de congé (Manager/Admin uniquement)
