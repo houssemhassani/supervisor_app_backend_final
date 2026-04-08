@@ -4,7 +4,8 @@
   "info": {
     "singularName": "screenshot",
     "pluralName": "screenshots",
-    "displayName": "Screenshot"
+    "displayName": "Screenshot",
+    "description": "Gestion des captures d'écran des employés"
   },
   "options": {
     "draftAndPublish": true
@@ -21,20 +22,55 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
-      "inversedBy": "screenshots"
+      "inversedBy": "screenshots",
+      "required": true
     },
     "image": {
       "type": "media",
       "multiple": false,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ]
+      "required": true,
+      "allowedTypes": ["images"]
     },
     "captured_at": {
-      "type": "datetime"
+      "type": "datetime",
+      "required": true
+    },
+    "is_identical": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indique si la capture est identique à la précédente"
+    },
+    "similarity_score": {
+      "type": "integer",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "description": "Pourcentage de similarité avec la capture précédente"
+    },
+    "file_hash": {
+      "type": "string",
+      "description": "Hash unique du fichier pour éviter les doublons"
+    },
+    "file_size": {
+      "type": "integer",
+      "description": "Taille du fichier en bytes"
+    },
+    "device_info": {
+      "type": "json",
+      "default": {},
+      "description": "Informations sur l'appareil (OS, navigateur, résolution écran)"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "Adresse IP lors de la capture"
+    },
+    "location": {
+      "type": "json",
+      "description": "Localisation géographique (latitude, longitude)"
+    },
+    "notes": {
+      "type": "text",
+      "description": "Notes ou commentaires sur la capture"
     }
   }
 }

@@ -889,6 +889,7 @@ export interface ApiRoleUserRoleUser extends Struct.CollectionTypeSchema {
 export interface ApiScreenshotScreenshot extends Struct.CollectionTypeSchema {
   collectionName: 'screenshots';
   info: {
+    description: "Gestion des captures d'\u00E9cran des employ\u00E9s";
     displayName: 'Screenshot';
     pluralName: 'screenshots';
     singularName: 'screenshot';
@@ -897,26 +898,43 @@ export interface ApiScreenshotScreenshot extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    captured_at: Schema.Attribute.DateTime;
+    captured_at: Schema.Attribute.DateTime & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    image: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    device_info: Schema.Attribute.JSON & Schema.Attribute.DefaultTo<{}>;
+    file_hash: Schema.Attribute.String;
+    file_size: Schema.Attribute.Integer;
+    image: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    ip_address: Schema.Attribute.String;
+    is_identical: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::screenshot.screenshot'
     > &
       Schema.Attribute.Private;
+    location: Schema.Attribute.JSON;
+    notes: Schema.Attribute.Text;
     project: Schema.Attribute.Relation<'manyToOne', 'api::project.project'>;
     publishedAt: Schema.Attribute.DateTime;
+    similarity_score: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     user: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.user'
-    >;
+    > &
+      Schema.Attribute.Required;
   };
 }
 
