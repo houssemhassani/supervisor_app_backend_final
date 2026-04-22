@@ -20,7 +20,9 @@
     "@strapi/provider-email-nodemailer": "^5.40.0",
     "@strapi/strapi": "5.40.0",
     "better-sqlite3": "12.6.2",
+    "file-saver": "^2.0.5",
     "nodemailer": "^8.0.3",
+    "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
     "pixelmatch": "^7.1.0",
     "pngjs": "^7.0.0",
@@ -32,6 +34,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5"

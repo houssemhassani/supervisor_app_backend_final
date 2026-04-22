@@ -9,9 +9,8 @@ export default {
       path: '/attendances',
       handler: 'attendance.find',
       config: {
-        auth: false/*  {
-          scope: ['employee', 'manager', 'admin']
-        } */
+        auth: false ,
+        policies: []   
       }
     },
     {
@@ -19,9 +18,17 @@ export default {
       path: '/attendances',
       handler: 'attendance.create',
       config: {
-        auth: false/*  {
-          scope: ['manager', 'admin']
-        } */
+        auth: false,
+        policies: []  
+      }
+    },
+    {
+      method: 'GET',
+      path: '/attendances/export-pdf',
+      handler: 'attendance.exportPDF',
+      config: {
+        auth: false,
+        policies: []  
       }
     },
     {
@@ -29,9 +36,8 @@ export default {
       path: '/attendances/:id',
       handler: 'attendance.update',
       config: {
-        auth:false /* {
-          scope: ['manager', 'admin']
-        } */
+        auth: false,
+        policies: []  
       }
     },
     {
@@ -39,9 +45,8 @@ export default {
       path: '/attendances/:id',
       handler: 'attendance.delete',
       config: {
-        auth: false /* {
-          scope: ['manager', 'admin']
-        } */
+        auth: false,
+        policies: []  
       }
     },
     {
@@ -49,9 +54,8 @@ export default {
       path: '/attendances/today',
       handler: 'attendance.getToday',
       config: {
-        auth:  false /*  {
-          scope: ['employee', 'manager', 'admin']
-        } */
+        auth: false,
+        policies: []  
       }
     },
     {
@@ -59,9 +63,17 @@ export default {
       path: '/attendances/weekly-stats',
       handler: 'attendance.getWeeklyStats',
       config: {
-        auth: false/* {
-          scope: ['employee', 'manager', 'admin']
-        } */
+        auth: false,
+        policies: []  
+      }
+    },
+    {
+      method: 'GET',
+      path: '/attendances/stats',
+      handler: 'attendance.getMonthlyStats',
+      config: {
+        auth: false,
+        policies: []  
       }
     },
     {
@@ -69,9 +81,8 @@ export default {
       path: '/attendances/check-in',
       handler: 'attendance.checkIn',
       config: {
-        auth: false/* {
-          scope: ['employee', 'manager', 'admin']
-        } */
+        auth: false,
+        policies: []  
       }
     },
     {
@@ -79,9 +90,8 @@ export default {
       path: '/attendances/check-out',
       handler: 'attendance.checkOut',
       config: {
-        auth: false /*  {
-          scope: ['employee', 'manager', 'admin']
-        } */
+        auth: false,
+        policies: []  
       }
     }
   ]
