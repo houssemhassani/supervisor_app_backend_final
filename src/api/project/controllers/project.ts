@@ -3,14 +3,10 @@
  */
 
 import { factories } from '@strapi/strapi';
-import { DateTime } from 'luxon';
 
 export default factories.createCoreController('api::project.project', ({ strapi }) => ({
   /**
    * Récupérer les projets selon le rôle
-   * - Employee: voit seulement les projets auxquels il est assigné
-   * - Manager: voit les projets qu'il a créés + ceux de son équipe
-   * - Admin: voit tous les projets
    */
   async find(ctx) {
     const { user } = ctx.state;
@@ -21,39 +17,69 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     
     const userRole = user.role?.name?.toLowerCase();
     
+    // Pour admin, retourner tous les projets
+    if (userRole === 'admin') {
+      const entities = await strapi.entityService.findMany('api::project.project', {
+        populate: ['creator', 'users', 'tasks'],
+        sort: { createdAt: 'desc' }
+      });
+      
+      return { data: entities, meta: { pagination: { page: 1, pageSize: entities.length, pageCount: 1, total: entities.length } } };
+    }
+    
+    // Pour employee et manager, construire les filtres
+    let filters: any = {};
+    
     if (userRole === 'employee') {
       // Employee: voir les projets où il est assigné
-      const { data, meta } = await super.find(ctx);
-      const filteredData = data.filter((project: any) => {
-        if (!project.users) return false;
-        return project.users.some((u: any) => u.id === user.id);
-      });
-      return { data: filteredData, meta };
+      filters = {
+        users: {
+          id: { $eq: user.id }
+        }
+      };
+    } else if (userRole === 'manager') {
+      // Manager: voir ses propres projets + projets où il est assigné
+      filters = {
+        $or: [
+          { creator: { id: { $eq: user.id } } },
+          { users: { id: { $eq: user.id } } }
+        ]
+      };
     }
     
-    if (userRole === 'manager') {
-      // Manager: voir ses propres projets + projets de son équipe
-      const { data, meta } = await super.find(ctx);
-      const filteredData = data.filter((project: any) => {
-        // Projet créé par le manager
-        if (project.creator?.id === user.id) return true;
-        // Projet où le manager est assigné
-        if (project.users?.some((u: any) => u.id === user.id)) return true;
-        return false;
-      });
-      return { data: filteredData, meta };
+    const entities = await strapi.entityService.findMany('api::project.project', {
+      filters,
+      populate: ['creator', 'users', 'tasks'],
+      sort: { createdAt: 'desc' }
+    });
+    
+    return { data: entities, meta: { pagination: { page: 1, pageSize: entities.length, pageCount: 1, total: entities.length } } };
+  },
+  
+  /**
+   * Récupérer un projet par son ID
+   */
+  async findOne(ctx) {
+    const { user } = ctx.state;
+    const { id } = ctx.params;
+    
+    if (!user) {
+      return ctx.unauthorized('Vous devez être connecté');
     }
     
-    // Admin voit tout
-    const { data, meta } = await super.find(ctx);
-    return { data, meta };
+    const entity = await strapi.entityService.findOne('api::project.project', id, {
+      populate: ['creator', 'users', 'tasks']
+    });
+    
+    if (!entity) {
+      return ctx.notFound('Projet non trouvé');
+    }
+    
+    return { data: entity };
   },
   
   /**
    * Créer un projet
-   * - Employee: ne peut pas créer
-   * - Manager: peut créer
-   * - Admin: peut créer
    */
   async create(ctx) {
     const { user } = ctx.state;
@@ -69,32 +95,67 @@ export default factories.createCoreController('api::project.project', ({ strapi 
       return ctx.forbidden('Les employés ne peuvent pas créer des projets');
     }
     
-    const requestData = ctx.request.body?.data || {};
+    // Récupérer les données du body
+    const body = ctx.request.body;
+    let requestData: any = {};
     
-    // Assigner le créateur
-    requestData.creator = user.id;
+    if (body.data) {
+      requestData = body.data;
+    } else {
+      requestData = body;
+    }
+    
+    // Initialiser usersList
+    let usersList: number[] = [];
+    if (requestData.users && Array.isArray(requestData.users)) {
+      usersList = requestData.users;
+    }
     
     // Si manager, ajouter automatiquement le manager comme membre
     if (userRole === 'manager') {
-      if (!requestData.users) {
-        requestData.users = [];
-      }
-      if (!requestData.users.some((u: any) => u.id === user.id)) {
-        requestData.users.push(user.id);
+      if (!usersList.includes(user.id)) {
+        usersList.push(user.id);
       }
     }
     
-    ctx.request.body = { data: requestData };
+    // Préparer les données pour la création
+    const createData: any = {
+      name: requestData.name,
+      start_date: requestData.start_date,
+      end_date: requestData.end_date,
+      statuts: requestData.statuts || 'PLANNED',
+      publishedAt: new Date().toISOString(),
+      creator: user.id
+    };
     
-    const response = await super.create(ctx);
-    return response;
+    // Ajouter les users si présents
+    if (usersList.length > 0) {
+      // @ts-ignore - Strapi accepte un tableau d'IDs pour les relations many-to-many
+      createData.users = usersList;
+    }
+    
+    // Gérer la description (type blocks)
+    if (requestData.description) {
+      if (typeof requestData.description === 'string') {
+        createData.description = [{ type: 'paragraph', children: [{ type: 'text', text: requestData.description }] }];
+      } else {
+        createData.description = requestData.description;
+      }
+    } else {
+      createData.description = [{ type: 'paragraph', children: [{ type: 'text', text: '' }] }];
+    }
+    
+    // Créer le projet
+    const entity = await strapi.entityService.create('api::project.project', {
+      data: createData,
+      populate: ['creator', 'users']
+    });
+    
+    return { data: entity };
   },
   
   /**
    * Mettre à jour un projet
-   * - Employee: ne peut pas modifier
-   * - Manager: peut modifier seulement ses propres projets
-   * - Admin: peut modifier tous les projets
    */
   async update(ctx) {
     const { user } = ctx.state;
@@ -106,13 +167,12 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     
     const userRole = user.role?.name?.toLowerCase();
     
-    // Récupérer le projet
-    const project = await strapi.db.query('api::project.project').findOne({
-      where: { id },
-      populate: { creator: true, users: true }
-    });
+    // Récupérer le projet existant avec ses relations
+    const existingProject = await strapi.entityService.findOne('api::project.project', id, {
+      populate: ['creator']
+    }) as any;
     
-    if (!project) {
+    if (!existingProject) {
       return ctx.notFound('Projet non trouvé');
     }
     
@@ -122,20 +182,65 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     }
     
     if (userRole === 'manager') {
-      if (project.creator?.id !== user.id) {
+      if (existingProject.creator?.id !== user.id) {
         return ctx.forbidden('Vous ne pouvez modifier que vos propres projets');
       }
     }
     
-    const response = await super.update(ctx);
-    return response;
+    // Récupérer les données à mettre à jour
+    const body = ctx.request.body;
+    let updateData: any = {};
+    
+    if (body.data) {
+      updateData = body.data;
+    } else {
+      updateData = body;
+    }
+    
+    // Préparer les données de mise à jour
+    const dataToUpdate: any = {};
+    
+    if (updateData.name !== undefined) {
+      dataToUpdate.name = updateData.name;
+    }
+    
+    if (updateData.description !== undefined) {
+      if (typeof updateData.description === 'string') {
+        dataToUpdate.description = [{ type: 'paragraph', children: [{ type: 'text', text: updateData.description }] }];
+      } else {
+        dataToUpdate.description = updateData.description;
+      }
+    }
+    
+    if (updateData.statuts !== undefined) {
+      dataToUpdate.statuts = updateData.statuts;
+    }
+    
+    if (updateData.start_date !== undefined) {
+      dataToUpdate.start_date = updateData.start_date;
+    }
+    
+    if (updateData.end_date !== undefined) {
+      dataToUpdate.end_date = updateData.end_date;
+    }
+    
+    // Pour la mise à jour des users, assigner directement le tableau d'IDs
+    if (updateData.users !== undefined && Array.isArray(updateData.users)) {
+      // @ts-ignore - Strapi accepte un tableau d'IDs pour les relations many-to-many
+      dataToUpdate.users = updateData.users;
+    }
+    
+    // Mettre à jour le projet
+    const entity = await strapi.entityService.update('api::project.project', id, {
+      data: dataToUpdate,
+      populate: ['creator', 'users']
+    });
+    
+    return { data: entity };
   },
   
   /**
    * Supprimer un projet
-   * - Employee: ne peut pas supprimer
-   * - Manager: peut supprimer seulement ses propres projets
-   * - Admin: peut supprimer tous les projets
    */
   async delete(ctx) {
     const { user } = ctx.state;
@@ -147,13 +252,12 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     
     const userRole = user.role?.name?.toLowerCase();
     
-    // Récupérer le projet
-    const project = await strapi.db.query('api::project.project').findOne({
-      where: { id },
-      populate: { creator: true }
-    });
+    // Récupérer le projet existant
+    const existingProject = await strapi.entityService.findOne('api::project.project', id, {
+      populate: ['creator']
+    }) as any;
     
-    if (!project) {
+    if (!existingProject) {
       return ctx.notFound('Projet non trouvé');
     }
     
@@ -163,118 +267,136 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     }
     
     if (userRole === 'manager') {
-      if (project.creator?.id !== user.id) {
+      if (existingProject.creator?.id !== user.id) {
         return ctx.forbidden('Vous ne pouvez supprimer que vos propres projets');
       }
     }
     
-    const response = await super.delete(ctx);
-    return response;
+    // Supprimer le projet
+    const entity = await strapi.entityService.delete('api::project.project', id);
+    
+    return { data: entity };
   },
   
   /**
    * Ajouter des membres à un projet
    */
-  async addMembers(ctx) {
-    const { user } = ctx.state;
-    const { id } = ctx.params;
-    const { userIds } = ctx.request.body;
-    
-    if (!user) {
-      return ctx.unauthorized('Vous devez être connecté');
-    }
-    
-    const userRole = user.role?.name?.toLowerCase();
-    
-    // Récupérer le projet
-    const project = await strapi.db.query('api::project.project').findOne({
-      where: { id },
-      populate: { creator: true, users: true }
-    });
-    
-    if (!project) {
-      return ctx.notFound('Projet non trouvé');
-    }
-    
-    // Vérifier les permissions
-    if (userRole === 'employee') {
-      return ctx.forbidden('Les employés ne peuvent pas ajouter des membres');
-    }
-    
-    if (userRole === 'manager' && project.creator?.id !== user.id) {
-      return ctx.forbidden('Vous ne pouvez ajouter des membres qu\'à vos propres projets');
-    }
-    
-    // Ajouter les nouveaux membres
-    const existingUsers = project.users || [];
-    const allUsers = [...existingUsers.map((u: any) => u.id), ...userIds];
-    const uniqueUsers = [...new Set(allUsers)];
-    
-    const response = await strapi.db.query('api::project.project').update({
-      where: { id },
-      data: {
-        users: uniqueUsers
-      }
-    });
-    
-    return ctx.send({
-      success: true,
-      message: 'Membres ajoutés avec succès',
-      data: response
-    });
-  },
+ /**
+ * Ajouter des membres à un projet
+ */
+async addMembers(ctx) {
+  const { user } = ctx.state;
+  const { id } = ctx.params;
+  const { userIds } = ctx.request.body;
   
-  /**
-   * Retirer des membres d'un projet
-   */
-  async removeMembers(ctx) {
-    const { user } = ctx.state;
-    const { id } = ctx.params;
-    const { userIds } = ctx.request.body;
-    
-    if (!user) {
-      return ctx.unauthorized('Vous devez être connecté');
+  if (!user) {
+    return ctx.unauthorized('Vous devez être connecté');
+  }
+  
+  const userRole = user.role?.name?.toLowerCase();
+  
+  // Récupérer le projet existant
+  const existingProject = await strapi.db.query('api::project.project').findOne({
+    where: { id },
+    populate: ['creator', 'users']
+  });
+  
+  if (!existingProject) {
+    return ctx.notFound('Projet non trouvé');
+  }
+  
+  // Vérifier les permissions
+  if (userRole === 'employee') {
+    return ctx.forbidden('Les employés ne peuvent pas ajouter des membres');
+  }
+  
+  if (userRole === 'manager' && existingProject.creator?.id !== user.id) {
+    return ctx.forbidden('Vous ne pouvez ajouter des membres qu\'à vos propres projets');
+  }
+  
+  // Ajouter les nouveaux membres
+  const existingUserIds = (existingProject.users || []).map((u: any) => u.id);
+  const allUserIds = [...new Set([...existingUserIds, ...userIds])];
+  
+  // Mettre à jour le projet avec la nouvelle liste d'IDs en utilisant db.query
+  const updatedProject = await strapi.db.query('api::project.project').update({
+    where: { id },
+    data: {
+      users: allUserIds
     }
-    
-    const userRole = user.role?.name?.toLowerCase();
-    
-    // Récupérer le projet
-    const project = await strapi.db.query('api::project.project').findOne({
-      where: { id },
-      populate: { creator: true, users: true }
-    });
-    
-    if (!project) {
-      return ctx.notFound('Projet non trouvé');
+  });
+  
+  // Récupérer le projet mis à jour avec les relations
+  const entity = await strapi.entityService.findOne('api::project.project', id, {
+    populate: ['users']
+  });
+  
+  return ctx.send({
+    success: true,
+    message: 'Membres ajoutés avec succès',
+    data: entity
+  });
+},
+
+/**
+ * Retirer des membres d'un projet
+ */
+async removeMembers(ctx) {
+  const { user } = ctx.state;
+  const { id } = ctx.params;
+  const { userIds } = ctx.request.body;
+  
+  if (!user) {
+    return ctx.unauthorized('Vous devez être connecté');
+  }
+  
+  const userRole = user.role?.name?.toLowerCase();
+  
+  // Récupérer le projet existant
+  const existingProject = await strapi.db.query('api::project.project').findOne({
+    where: { id },
+    populate: ['creator', 'users']
+  });
+  
+  if (!existingProject) {
+    return ctx.notFound('Projet non trouvé');
+  }
+  
+  // Vérifier les permissions
+  if (userRole === 'employee') {
+    return ctx.forbidden('Les employés ne peuvent pas retirer des membres');
+  }
+  
+  if (userRole === 'manager' && existingProject.creator?.id !== user.id) {
+    return ctx.forbidden('Vous ne pouvez retirer des membres qu\'à vos propres projets');
+  }
+  
+  // Retirer les membres
+  const remainingUsers = (existingProject.users || [])
+    .filter((u: any) => !userIds.includes(u.id))
+    .map((u: any) => u.id);
+  
+  // Mettre à jour le projet avec la nouvelle liste d'IDs en utilisant db.query
+  await strapi.db.query('api::project.project').update({
+    where: { id },
+    data: {
+      users: remainingUsers
     }
-    
-    // Vérifier les permissions
-    if (userRole === 'employee') {
-      return ctx.forbidden('Les employés ne peuvent pas retirer des membres');
-    }
-    
-    if (userRole === 'manager' && project.creator?.id !== user.id) {
-      return ctx.forbidden('Vous ne pouvez retirer des membres qu\'à vos propres projets');
-    }
-    
-    // Retirer les membres
-    const remainingUsers = (project.users || []).filter(
-      (u: any) => !userIds.includes(u.id)
-    );
-    
-    const response = await strapi.db.query('api::project.project').update({
-      where: { id },
-      data: {
-        users: remainingUsers.map((u: any) => u.id)
-      }
-    });
-    
-    return ctx.send({
-      success: true,
-      message: 'Membres retirés avec succès',
-      data: response
-    });
-  },
+  });
+  
+  // Récupérer le projet mis à jour avec les relations
+  const entity = await strapi.entityService.findOne('api::project.project', id, {
+    populate: ['users']
+  });
+  
+  return ctx.send({
+    success: true,
+    message: 'Membres retirés avec succès',
+    data: entity
+  });
+},
+  
+
   
   /**
    * Récupérer les projets d'un utilisateur
@@ -288,25 +410,25 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     }
     
     const userRole = user.role?.name?.toLowerCase();
-    const targetUserId = userId || user.id;
+    const targetUserId = parseInt(userId || user.id);
     
     // Vérifier les permissions
     if (userRole === 'employee' && targetUserId !== user.id) {
       return ctx.forbidden('Vous ne pouvez voir que vos propres projets');
     }
     
-    const projects = await strapi.db.query('api::project.project').findMany({
-      where: {
+    const entities = await strapi.entityService.findMany('api::project.project', {
+      filters: {
         users: {
-          id: targetUserId
+          id: { $eq: targetUserId }
         }
       },
-      populate: { creator: true, users: true, tasks: true }
+      populate: ['creator', 'users', 'tasks']
     });
     
     return ctx.send({
       success: true,
-      data: projects
+      data: entities
     });
   },
   
@@ -322,31 +444,40 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     
     const userRole = user.role?.name?.toLowerCase();
     
-    let whereClause: any = {
+    let filters: any = {
       statuts: { $in: ['PLANNED', 'IN_PROGRESS'] }
     };
     
     if (userRole === 'employee') {
-      whereClause.users = { id: user.id };
+      filters = {
+        $and: [
+          { statuts: { $in: ['PLANNED', 'IN_PROGRESS'] } },
+          { users: { id: { $eq: user.id } } }
+        ]
+      };
     } else if (userRole === 'manager') {
-      whereClause = {
-        ...whereClause,
-        $or: [
-          { creator: user.id },
-          { users: { id: user.id } }
+      filters = {
+        $and: [
+          { statuts: { $in: ['PLANNED', 'IN_PROGRESS'] } },
+          {
+            $or: [
+              { creator: { id: { $eq: user.id } } },
+              { users: { id: { $eq: user.id } } }
+            ]
+          }
         ]
       };
     }
     
-    const projects = await strapi.db.query('api::project.project').findMany({
-      where: whereClause,
-      populate: { creator: true, users: true },
-      orderBy: { start_date: 'asc' }
+    const entities = await strapi.entityService.findMany('api::project.project', {
+      filters,
+      populate: ['creator', 'users'],
+      sort: { start_date: 'asc' }
     });
     
     return ctx.send({
       success: true,
-      data: projects
+      data: entities
     });
   },
   
@@ -362,29 +493,29 @@ export default factories.createCoreController('api::project.project', ({ strapi 
     
     const userRole = user.role?.name?.toLowerCase();
     
-    let whereClause: any = {};
+    let filters: any = {};
     
     if (userRole === 'employee') {
-      whereClause.users = { id: user.id };
+      filters = { users: { id: { $eq: user.id } } };
     } else if (userRole === 'manager') {
-      whereClause = {
+      filters = {
         $or: [
-          { creator: user.id },
-          { users: { id: user.id } }
+          { creator: { id: { $eq: user.id } } },
+          { users: { id: { $eq: user.id } } }
         ]
       };
     }
     
-    const projects = await strapi.db.query('api::project.project').findMany({
-      where: whereClause
+    const entities = await strapi.entityService.findMany('api::project.project', {
+      filters
     });
     
     const stats = {
-      total: projects.length,
-      planned: projects.filter((p: any) => p.statuts === 'PLANNED').length,
-      inProgress: projects.filter((p: any) => p.statuts === 'IN_PROGRESS').length,
-      completed: projects.filter((p: any) => p.statuts === 'COMPLETED').length,
-      cancelled: projects.filter((p: any) => p.statuts === 'CANCELLED').length
+      total: entities.length,
+      planned: entities.filter((p: any) => p.statuts === 'PLANNED').length,
+      inProgress: entities.filter((p: any) => p.statuts === 'IN_PROGRESS').length,
+      completed: entities.filter((p: any) => p.statuts === 'COMPLETED').length,
+      cancelled: entities.filter((p: any) => p.statuts === 'CANCELLED').length
     };
     
     return ctx.send({
